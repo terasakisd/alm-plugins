@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 (Ad Link Manager)
  * Description: 投稿・固定ページごとに、案件単位で複数のbt ID / キーワードを登録し、案件まるごとワンクリックで表示/非表示切替できるメタボックス。判定方法はサイト単位で設定。
- * Version: 6.9.0
+ * Version: 6.9.1
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: Mikuru
  */
@@ -1860,41 +1860,34 @@ class Ad_Link_Manager {
 new Ad_Link_Manager();
 
 /* ---------- GitHub リリースからの自動更新 ----------
- * WP標準の Update URI 機構（WP5.8+）。プラグインヘッダの Update URI が github.com のため、
- * 更新チェック時に update_plugins_github.com フィルタが呼ばれる。
- * リポジトリ terasakisd/alm-plugins のリリースから、タグ「ad-link-manager-<version>」かつ
- * アセット「ad-link-manager.zip」を探し、現行より新しければ WP の更新通知に載せる。
+ * WP標準の Update URI 機構（WP5.8+）。更新情報はリポジトリ内の静的マニフェスト
+ * updates.json（raw.githubusercontent.com）から取得する。
+ * GitHub API と違いレート制限が実質無く、共用サーバーでも安定して確認できる。
+ * 「更新 → もう一度確認する」(force-check) 時はキャッシュを無視して即時確認。
+ * 取得失敗は10分だけキャッシュ（成功は6時間）。
  */
 add_filter('update_plugins_github.com', function ($update, $plugin_data, $plugin_file) {
     if ($plugin_file !== plugin_basename(__FILE__)) return $update;
 
     $cache_key = 'ad_link_manager_gh_update';
-    // 「更新 → もう一度確認する」(force-check) のときはキャッシュを使わず即時に見にいく
     $force = is_admin() && !empty($_GET['force-check']);
     $info = $force ? false : get_transient($cache_key);
-    if ($info === false) {
+    if ($info === false || !is_array($info)) {
         $info = ['version' => '', 'package' => ''];
+        $ttl  = 10 * MINUTE_IN_SECONDS; // 失敗時は短めに再試行
         $res = wp_remote_get(
-            'https://api.github.com/repos/terasakisd/alm-plugins/releases?per_page=20',
-            ['timeout' => 10, 'headers' => ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'WordPress; ' . home_url('/')]]
+            'https://raw.githubusercontent.com/terasakisd/alm-plugins/main/updates.json',
+            ['timeout' => 10, 'headers' => ['Accept' => 'application/json', 'User-Agent' => 'WordPress; ' . home_url('/')]]
         );
         if (!is_wp_error($res) && wp_remote_retrieve_response_code($res) === 200) {
-            $releases = json_decode(wp_remote_retrieve_body($res), true);
-            foreach ((array) $releases as $r) {
-                if (!empty($r['draft']) || !empty($r['prerelease'])) continue;
-                $tag = (string) ($r['tag_name'] ?? '');
-                if (strpos($tag, 'ad-link-manager-') !== 0) continue; // 他プラグインのリリースは無視
-                $ver = substr($tag, strlen('ad-link-manager-'));
-                foreach ((array) ($r['assets'] ?? []) as $a) {
-                    if (($a['name'] ?? '') === 'ad-link-manager.zip') {
-                        $info = ['version' => $ver, 'package' => (string) $a['browser_download_url']];
-                        break 2;
-                    }
-                }
+            $all = json_decode(wp_remote_retrieve_body($res), true);
+            $me  = (is_array($all) && isset($all['ad-link-manager']) && is_array($all['ad-link-manager'])) ? $all['ad-link-manager'] : null;
+            if ($me && !empty($me['version']) && !empty($me['package'])) {
+                $info = ['version' => (string) $me['version'], 'package' => (string) $me['package']];
+                $ttl  = 6 * HOUR_IN_SECONDS;
             }
         }
-        // 6時間キャッシュ（GitHub APIの未認証レート制限対策）
-        set_transient($cache_key, $info, 6 * HOUR_IN_SECONDS);
+        set_transient($cache_key, $info, $ttl);
     }
 
     if (!empty($info['version']) && !empty($info['package'])

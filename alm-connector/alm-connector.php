@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 コネクタ (ALM Connector)
  * Description: ad-link-manager 本体を一切変更せず、外部アプリ（順位管理ツール）から案件のコメントアウト(disabled)を読み書きするためのREST APIだけを追加する。データは本体と同じ投稿メタ _alm_ad_campaigns / オプション alm_bt_map を共有する。
- * Version: 1.12.0
+ * Version: 1.12.1
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: -
  *
@@ -1064,41 +1064,34 @@ class ALM_Connector {
 new ALM_Connector();
 
 /* ---------- GitHub リリースからの自動更新 ----------
- * WP標準の Update URI 機構（WP5.8+）。プラグインヘッダの Update URI が github.com のため、
- * 更新チェック時に update_plugins_github.com フィルタが呼ばれる。
- * リポジトリ terasakisd/alm-plugins のリリースから、タグ「alm-connector-<version>」かつ
- * アセット「alm-connector.zip」を探し、現行より新しければ WP の更新通知に載せる。
+ * WP標準の Update URI 機構（WP5.8+）。更新情報はリポジトリ内の静的マニフェスト
+ * updates.json（raw.githubusercontent.com）から取得する。
+ * GitHub API と違いレート制限が実質無く、共用サーバーでも安定して確認できる。
+ * 「更新 → もう一度確認する」(force-check) 時はキャッシュを無視して即時確認。
+ * 取得失敗は10分だけキャッシュ（成功は6時間）。
  */
 add_filter('update_plugins_github.com', function ($update, $plugin_data, $plugin_file) {
     if ($plugin_file !== plugin_basename(__FILE__)) return $update;
 
     $cache_key = 'alm_connector_gh_update';
-    // 「更新 → もう一度確認する」(force-check) のときはキャッシュを使わず即時に見にいく
     $force = is_admin() && !empty($_GET['force-check']);
     $info = $force ? false : get_transient($cache_key);
-    if ($info === false) {
+    if ($info === false || !is_array($info)) {
         $info = ['version' => '', 'package' => ''];
+        $ttl  = 10 * MINUTE_IN_SECONDS; // 失敗時は短めに再試行
         $res = wp_remote_get(
-            'https://api.github.com/repos/terasakisd/alm-plugins/releases?per_page=20',
-            ['timeout' => 10, 'headers' => ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'WordPress; ' . home_url('/')]]
+            'https://raw.githubusercontent.com/terasakisd/alm-plugins/main/updates.json',
+            ['timeout' => 10, 'headers' => ['Accept' => 'application/json', 'User-Agent' => 'WordPress; ' . home_url('/')]]
         );
         if (!is_wp_error($res) && wp_remote_retrieve_response_code($res) === 200) {
-            $releases = json_decode(wp_remote_retrieve_body($res), true);
-            foreach ((array) $releases as $r) {
-                if (!empty($r['draft']) || !empty($r['prerelease'])) continue;
-                $tag = (string) ($r['tag_name'] ?? '');
-                if (strpos($tag, 'alm-connector-') !== 0) continue; // 他プラグインのリリースは無視
-                $ver = substr($tag, strlen('alm-connector-'));
-                foreach ((array) ($r['assets'] ?? []) as $a) {
-                    if (($a['name'] ?? '') === 'alm-connector.zip') {
-                        $info = ['version' => $ver, 'package' => (string) $a['browser_download_url']];
-                        break 2;
-                    }
-                }
+            $all = json_decode(wp_remote_retrieve_body($res), true);
+            $me  = (is_array($all) && isset($all['alm-connector']) && is_array($all['alm-connector'])) ? $all['alm-connector'] : null;
+            if ($me && !empty($me['version']) && !empty($me['package'])) {
+                $info = ['version' => (string) $me['version'], 'package' => (string) $me['package']];
+                $ttl  = 6 * HOUR_IN_SECONDS;
             }
         }
-        // 6時間キャッシュ（GitHub APIの未認証レート制限対策）
-        set_transient($cache_key, $info, 6 * HOUR_IN_SECONDS);
+        set_transient($cache_key, $info, $ttl);
     }
 
     if (!empty($info['version']) && !empty($info['package'])

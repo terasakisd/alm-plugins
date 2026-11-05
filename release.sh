@@ -16,6 +16,24 @@ if gh release view "$TAG" >/dev/null 2>&1; then
   exit 1
 fi
 
+# 更新マニフェスト（各サイトの更新チェックが参照する）を更新してプッシュ
+python3 - "$PLUGIN" "$VER" <<'PYEOF'
+import json, sys
+p, v = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open('updates.json'))
+except Exception:
+    d = {}
+d[p] = {
+    "version": v,
+    "package": f"https://github.com/terasakisd/alm-plugins/releases/download/{p}-{v}/{p}.zip",
+}
+json.dump(d, open('updates.json', 'w'), indent=2, ensure_ascii=False)
+PYEOF
+git add updates.json
+git commit -q -m "updates.json: $PLUGIN $VER" || true
+git push -q origin main
+
 rm -f "$PLUGIN.zip"
 zip -r -q "$PLUGIN.zip" "$PLUGIN" -x "*.DS_Store"
 gh release create "$TAG" "$PLUGIN.zip" --title "$PLUGIN $VER" --notes "$PLUGIN v$VER"
