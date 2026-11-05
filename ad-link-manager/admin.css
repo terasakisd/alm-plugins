@@ -1,0 +1,173 @@
+.alm-wrap .alm-empty {
+    padding: 18px;
+    text-align: center;
+    color: #888;
+    background: #f6f7f7;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+}
+
+.alm-campaign {
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #fff;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+}
+.alm-campaign-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+.alm-campaign-head .alm-campaign-name { flex: 1 1 240px; min-width: 180px; }
+
+/* 折りたたみトグルボタン */
+.alm-toggle-collapse {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    padding: 2px 8px;
+    cursor: pointer;
+    color: #555;
+    font-size: 11px;
+    line-height: 1.5;
+}
+.alm-toggle-collapse:hover { background: #f0f0f1; color: #2271b1; border-color: #8c8f94; }
+
+.alm-campaign-summary {
+    flex: 0 0 auto;
+    background: #f0f0f1;
+    color: #555;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* コメントアウトON時はバッジ強調 */
+.alm-campaign:has(input[name$="[disabled]"]:checked) .alm-campaign-summary {
+    background: #fce8e8;
+    color: #d63638;
+    font-weight: bold;
+}
+
+/* 折りたたみ時のbody非表示と、ヘッダーから下の境界線を消す */
+.alm-campaign.is-collapsed .alm-campaign-body { display: none; }
+.alm-campaign.is-collapsed .alm-campaign-head {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.alm-bottom-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.alm-status { font-size: 13px; color: #2271b1; min-height: 1.2em; }
+.alm-status.error { color: #d63638; }
+
+.alm-switch-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+.alm-switch-label { font-size: 13px; color: #333; }
+
+/* トグル */
+.alm-switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+.alm-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.alm-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: #c7c7c7; border-radius: 24px; transition: .2s;
+}
+.alm-slider::before {
+    content: ""; position: absolute; height: 18px; width: 18px;
+    left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s;
+}
+.alm-switch input:checked + .alm-slider { background: #d63638; }
+.alm-switch input:checked + .alm-slider::before { transform: translateX(22px); }
+
+/* 値の行（btごと） */
+.alm-values { display: flex; flex-direction: column; gap: 10px; }
+
+.alm-value-block {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #fafbfc;
+    border: 1px solid #e8e8e8;
+    border-radius: 3px;
+}
+
+.alm-value-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.alm-value-line .alm-value { flex: 1 1 200px; min-width: 160px; }
+.alm-value-line .alm-remove-value {
+    color: #d63638; min-width: 32px; padding: 0 8px;
+}
+
+.alm-value-replacement {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 16px;
+}
+.alm-rep-label {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
+}
+.alm-value-replacement-input {
+    flex: 1 1 auto;
+    font-size: 12px;
+}
+
+.alm-url-hint {
+    flex-basis: 100%;
+    font-size: 11px;
+    color: #666;
+    padding-left: 4px;
+    word-break: break-all;
+}
+.alm-url-hint a { color: #2271b1; text-decoration: none; }
+.alm-url-hint a:hover { text-decoration: underline; }
+
+/* btごとの「親要素ごと消す」セクション */
+.alm-value-parent { padding-left: 16px; }
+.alm-parent-wrap-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+    user-select: none;
+}
+
+.alm-parent-selectors-bt {
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: #fff8e5;
+    border-left: 3px solid #f0b849;
+    border-radius: 2px;
+}
+.alm-parent-row-bt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.alm-parent-row-bt .alm-parent-selector-bt {
+    flex: 1 1 auto;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+}
+.alm-parent-row-bt .alm-remove-parent-bt {
+    color: #d63638; min-width: 32px; padding: 0 8px;
+}
+
+.alm-value-actions { margin: 6px 0 0; }
