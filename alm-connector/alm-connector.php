@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 コネクタ (ALM Connector)
  * Description: ad-link-manager 本体を一切変更せず、外部アプリ（順位管理ツール）から案件のコメントアウト(disabled)を読み書きするためのREST APIだけを追加する。データは本体と同じ投稿メタ _alm_ad_campaigns / オプション alm_bt_map を共有する。
- * Version: 1.10.0
+ * Version: 1.11.0
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: -
  *
@@ -660,6 +660,7 @@ class ALM_Connector {
 
         $len = strlen($content);
         $units = [];
+        $btmap = $this->bt_map_lower(); // /lp/形式が無いサイトのブランド解決用
         $n = count($m[0]);
         for ($i = 0; $i < $n; $i++) {
             $full  = $m[0][$i][0];
@@ -689,6 +690,17 @@ class ALM_Connector {
             $html  = substr($content, $start, $end - $start);
             $brand = '';
             if (preg_match('#/lp/([a-z0-9_\-]+)\.html#i', $html, $bm)) $brand = strtolower($bm[1]);
+            // /lp/形式のリンクが無いサイト（bt ID＋JSクリックの構成）は、
+            // ユニット内の bt ID を bt対応表（alm_bt_map）で引いて、リンク先URLのファイル名をブランドにする
+            if ($brand === '' && !empty($btmap) && preg_match_all('/\bid=["\'](bt\d+)["\']/i', $html, $btm)) {
+                foreach ($btm[1] as $bt) {
+                    $k = strtolower($bt);
+                    if (isset($btmap[$k])) {
+                        $b = $this->brand_from_url($btmap[$k]);
+                        if ($b !== '') { $brand = strtolower($b); break; }
+                    }
+                }
+            }
             $is_heading = ($tag === 'h3'); // 管理画面に出す「順位の元」= 見出しのみ
 
             $heading = trim(wp_strip_all_tags($html));
@@ -700,8 +712,15 @@ class ALM_Connector {
         // id → ブランド の対応表（トピックから）。data-rank に「トピックの id」を書いてもブランドに解決できる
         $aliasIdToBrand = [];
         foreach ($units as $u) {
-            if ($u['brand'] !== '' && $u['id'] !== '' && !isset($aliasIdToBrand[$u['id']])) {
+            if ($u['brand'] === '') continue;
+            if ($u['id'] !== '' && !isset($aliasIdToBrand[$u['id']])) {
                 $aliasIdToBrand[$u['id']] = $u['brand'];
+            }
+            // 表記ゆれ吸収: data-rank="topic_yokohamabank" と ブランド "yokohama-bank" のように
+            // 記号の有無だけ違うキーを同じブランドへ解決する
+            $norm = preg_replace('/[^a-z0-9]/', '', $u['brand']);
+            if ($norm !== '' && $norm !== $u['brand'] && !isset($aliasIdToBrand[$norm])) {
+                $aliasIdToBrand[$norm] = $u['brand'];
             }
         }
         // キーと「順位の元(is_source)」を確定する。
