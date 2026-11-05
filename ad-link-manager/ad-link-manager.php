@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 (Ad Link Manager)
  * Description: 投稿・固定ページごとに、案件単位で複数のbt ID / キーワードを登録し、案件まるごとワンクリックで表示/非表示切替できるメタボックス。判定方法はサイト単位で設定。
- * Version: 6.8.0
+ * Version: 6.8.1
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: Mikuru
  */
@@ -1836,7 +1836,9 @@ add_filter('update_plugins_github.com', function ($update, $plugin_data, $plugin
     if ($plugin_file !== plugin_basename(__FILE__)) return $update;
 
     $cache_key = 'ad_link_manager_gh_update';
-    $info = get_transient($cache_key);
+    // 「更新 → もう一度確認する」(force-check) のときはキャッシュを使わず即時に見にいく
+    $force = is_admin() && !empty($_GET['force-check']);
+    $info = $force ? false : get_transient($cache_key);
     if ($info === false) {
         $info = ['version' => '', 'package' => ''];
         $res = wp_remote_get(

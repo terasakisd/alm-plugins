@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 コネクタ (ALM Connector)
  * Description: ad-link-manager 本体を一切変更せず、外部アプリ（順位管理ツール）から案件のコメントアウト(disabled)を読み書きするためのREST APIだけを追加する。データは本体と同じ投稿メタ _alm_ad_campaigns / オプション alm_bt_map を共有する。
- * Version: 1.11.0
+ * Version: 1.11.1
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: -
  *
@@ -1070,7 +1070,9 @@ add_filter('update_plugins_github.com', function ($update, $plugin_data, $plugin
     if ($plugin_file !== plugin_basename(__FILE__)) return $update;
 
     $cache_key = 'alm_connector_gh_update';
-    $info = get_transient($cache_key);
+    // 「更新 → もう一度確認する」(force-check) のときはキャッシュを使わず即時に見にいく
+    $force = is_admin() && !empty($_GET['force-check']);
+    $info = $force ? false : get_transient($cache_key);
     if ($info === false) {
         $info = ['version' => '', 'package' => ''];
         $res = wp_remote_get(
