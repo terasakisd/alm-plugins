@@ -1,3 +1,6 @@
+> **移行済み**: 各プラグインは個別リポジトリへ移行しました（更新配信は Plugin Update Checker 方式）。
+> 本体: https://github.com/terasakisd/ad-link-manager ／ コネクタ: https://github.com/terasakisd/alm-connector
+
 # ALM Plugins
 
 広告リンク管理の WordPress プラグイン一式。

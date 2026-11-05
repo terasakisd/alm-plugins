@@ -1,10 +1,10 @@
 {
   "ad-link-manager": {
-    "version": "6.9.1",
-    "package": "https://github.com/terasakisd/alm-plugins/releases/download/ad-link-manager-6.9.1/ad-link-manager.zip"
+    "version": "6.9.2",
+    "package": "https://github.com/terasakisd/ad-link-manager/releases/download/v6.9.2/ad-link-manager.zip"
   },
   "alm-connector": {
-    "version": "1.12.2",
-    "package": "https://github.com/terasakisd/alm-plugins/releases/download/alm-connector-1.12.2/alm-connector.zip"
+    "version": "1.12.3",
+    "package": "https://github.com/terasakisd/alm-connector/releases/download/v1.12.3/alm-connector.zip"
   }
 }
