@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 (Ad Link Manager)
  * Description: 投稿・固定ページごとに、案件単位で複数のbt ID / キーワードを登録し、案件まるごとワンクリックで表示/非表示切替できるメタボックス。判定方法はサイト単位で設定。
- * Version: 6.8.1
+ * Version: 6.9.0
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: Mikuru
  */
@@ -1250,6 +1250,34 @@ class Ad_Link_Manager {
         return $links;
     }
 
+    /**
+     * HTML内のJSクリック処理（getElementById('btNNN') … 'https://….html?…'）から
+     * bt ID → リンク先URL の対応を抜き出し、bt対応表（alm_bt_map）へマージする。
+     * 既存エントリと同じ値なら書き込まない。追加・更新した件数を返す。
+     */
+    public function merge_bt_map_from_html($html) {
+        if (!preg_match_all('/getElementById\(\s*[\'"](bt\d+)[\'"]\s*\)/i', $html, $m, PREG_OFFSET_CAPTURE)) {
+            return 0;
+        }
+        $map = get_option(self::BT_MAP_OPTION, []);
+        if (!is_array($map)) $map = [];
+        $changed = 0;
+        foreach ($m[1] as $i => $hit) {
+            $bt  = strtolower($hit[0]);
+            $off = $m[0][$i][1];
+            // 対応する click ハンドラ内の遷移先URL（直後600文字以内の最初の .html URL）
+            $seg = substr($html, $off, 600);
+            if (!preg_match('/[\'"](https?:\/\/[^\'"]+?\.html[^\'"]*)[\'"]/i', $seg, $um)) continue;
+            $url = $um[1];
+            if (!isset($map[$bt]) || $map[$bt] !== $url) {
+                $map[$bt] = $url;
+                $changed++;
+            }
+        }
+        if ($changed > 0) update_option(self::BT_MAP_OPTION, $map, false);
+        return $changed;
+    }
+
     /* ---------- 外部ツール連携（コネクタ）用：情報を渡すだけのフック ---------- */
 
     /** その投稿の案件フル（values含む）を返す */
@@ -1282,7 +1310,12 @@ class Ad_Link_Manager {
         $links = [];
         if ($post->post_status === 'publish') {
             $html = $this->fetch_body($base, 10);
-            if ($html !== null) $links = $this->extract_links_from_html($html, $base);
+            if ($html !== null) {
+                $links = $this->extract_links_from_html($html, $base);
+                // 記事ページに埋め込まれたJS（bt→URLのクリック処理）から対応表を自動マージ。
+                // 記事ごとにJSが埋め込まれるサイトでも、スキャンするだけで対応表が育つ
+                $this->merge_bt_map_from_html($html);
+            }
         }
         if (empty($links)) {
             $content = $post->post_content;

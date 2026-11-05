@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 広告リンク管理 コネクタ (ALM Connector)
  * Description: ad-link-manager 本体を一切変更せず、外部アプリ（順位管理ツール）から案件のコメントアウト(disabled)を読み書きするためのREST APIだけを追加する。データは本体と同じ投稿メタ _alm_ad_campaigns / オプション alm_bt_map を共有する。
- * Version: 1.11.1
+ * Version: 1.12.0
  * Update URI: https://github.com/terasakisd/alm-plugins
  * Author: -
  *
@@ -488,6 +488,9 @@ class ALM_Connector {
         if (!is_array($data)) {
             return new WP_Error('alm_no_plugin', 'プラグインのスキャン機能が利用できません（ad-link-manager の更新が必要です）', ['status' => 501]);
         }
+        // スキャン中に本体側で対応表が自動マージされるため、最新の bt対応表を応答に同梱する
+        // （ツールはこれを使って取り込みをブランド別に分割する）
+        $data['bt_map'] = $this->bt_map_lower();
         return new WP_REST_Response($data, 200);
     }
 
